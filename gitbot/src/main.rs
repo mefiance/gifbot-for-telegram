@@ -60,7 +60,7 @@ async fn fetch_gif( client: &Client, klipy_key: &str, query: &str, customer_id: 
     Ok(envelope.data.data)
 }
 
-async fn handle_inline (bot: Bot, q: InlineQuery, client: &Client, klipy_key: &str,) -> ResponseResult<()> {
+async fn handle_inline (bot: Bot, q: InlineQuery, client: Client, klipy_key: String,) -> ResponseResult<()> {
     let customer_id = q.from.id.to_string();
     let items = fetch_gif(&client, &klipy_key, q.query.trim(), &customer_id).await.unwrap_or_else(|e| {
         log::error!("Klippy doesn't respond {e}");
@@ -74,10 +74,10 @@ async fn handle_inline (bot: Bot, q: InlineQuery, client: &Client, klipy_key: &s
             let (full_url, w, h) = format_gif(&item.file, &TIER_ORDER_FULL)?;
             let (preview_url, _, _) = format_gif(&item.file, &TIER_ORDER_PREVIEW).unwrap_or((full_url.clone(), w, h));
 
-            let git_url = full_url.parse().ok()?;
+            let gif_url = full_url.parse().ok()?;
             let thumb_url = preview_url.parse().ok()?;
 
-            let mut r = InlineQueryResultGif::new(i.to_string(), git_url, thumb_url);
+            let mut r = InlineQueryResultGif::new(i.to_string(), gif_url, thumb_url);
             r.gif_width = w;
             r.gif_height = h;
             Some(InlineQueryResult::Gif(r))
@@ -100,7 +100,7 @@ async fn main() {
     let handler = Update::filter_inline_query().endpoint(handle_inline);
 
     Dispatcher::builder(bot, handler)
-        .dependencies(dptree::deps![klipy_key])
+        .dependencies(dptree::deps![klipy_key, http])
         .enable_ctrlc_handler()
         .build()
         .dispatch()
